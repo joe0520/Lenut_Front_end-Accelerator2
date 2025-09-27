@@ -327,8 +327,14 @@ module in_line_controller(
 
                         // Set up for next row
                         if (out_row < 27) begin
-                            prefetch_needed <= (next_ifm_row < 32) ? 1'b1 : 1'b0;
-                            prefetch_done <= 1'b0;
+                            // 더 이상 프리페치할 입력 행이 없으면 프리페치 불필요
+                            if (next_ifm_row >= 32) begin
+                                prefetch_needed <= 1'b0;
+                                prefetch_done <= 1'b1; // 이미 완료된 것으로 처리
+                            end else begin
+                                prefetch_needed <= 1'b1;
+                                prefetch_done <= 1'b0;
+                            end
                             o_conv_row_start <= 1'b1;
                         end
                     end
