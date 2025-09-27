@@ -273,6 +273,7 @@ module in_line_controller(
                         
                         if (wr_col_cnt == 31) begin
                             wr_col_cnt <= 5'd0;
+                            wr_ptr <= (wr_ptr + 1) % 6;
                             next_ifm_row <= next_ifm_row + 1;
                             prefetch_done <= 1'b1;
                             $display("Prefetch completed: row %d into line %d at %0t", 
