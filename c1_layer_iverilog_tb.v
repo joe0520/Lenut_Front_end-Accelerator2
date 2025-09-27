@@ -88,11 +88,11 @@ module c1_layer_iverilog_tb();
         end
 
         // Load input image data
-        $readmemh("c1/image_pixels_0.txt", input_image);
+        $readmemh("../Lenut_Front_end-Accelerator2/c1/image_pixels_0.txt", input_image);
         $display("Loaded input image data");
 
         // Load expected output data
-        $readmemh("c1/layer_1_output.txt", expected_output);
+        $readmemh("../Lenut_Front_end-Accelerator2/c1/layer_1_output.txt", expected_output);
         $display("Loaded expected output data");
 
         // Initialize variables

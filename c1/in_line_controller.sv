@@ -59,7 +59,7 @@ module in_line_controller(
             
             S_LOAD_INIT: begin
                 // Wait until we have loaded 6 complete rows (rows 0-5)
-                if (pixel_in_valid && wr_col_cnt == 31 && next_ifm_row == 5) begin
+                if (pixel_in_valid && wr_col_cnt == 31 && next_ifm_row == 4) begin
                     next_state = S_CONV_ROW;
                 end
             end
@@ -174,17 +174,17 @@ module in_line_controller(
                             $display("Completed loading row %d at %0t", next_ifm_row, $time);
                             
                             // Check if initial loading is complete
-                            if (next_ifm_row == 5) begin
-                                // We now have rows 0-5 loaded, ready for convolution
+                            if (next_ifm_row == 4) begin // ** if 5, fetch 6lines / if 4, fetch 5lines? **
                                 $display("=== INITIAL LOADING COMPLETE ===");
-                                $display("Rows 0-5 loaded, starting convolution");
+                                $display("Rows 0-4 loaded, starting convolution");
                                 
                                 // Prepare for convolution
                                 win_col <= 5'd0;
-                                wr_ptr <= 3'd0;  // Next write will be to line 0 (circular)
-                                next_ifm_row <= 6'd6;  // Next input row will be row 6
-                                prefetch_needed <= 1'b1;  // Will need to prefetch row 6
+                                wr_ptr <= 3'd5;  // Next write will be to line 5 (circular)
+                                next_ifm_row <= 6'd5;  // Next input row will be row 5
+                                prefetch_needed <= 1'b1;  // Will need to prefetch row 5
                                 o_conv_row_start <= 1'b1;
+                                $display("Completed prepare variables %d at %0t", next_ifm_row, $time);
                                 
                                 // Debug: Show loaded data
                                 for (i = 0; i < 6; i = i + 1) begin
@@ -247,6 +247,7 @@ module in_line_controller(
                         if (win_col == 27) begin
                             o_conv_row_end <= 1'b1;
                             row_complete <= 1'b1;
+                            
                             $display("Row %0d completed at %0t", out_row, $time);
                         end else begin
                             win_col <= win_col + 1;
@@ -290,7 +291,7 @@ module in_line_controller(
                     rd_base_ptr <= (rd_base_ptr + 1) % 6;
                     wr_ptr <= (wr_ptr + 1) % 6;
                     win_col <= 5'd0;
-                    wr_col_cnt <= 5'd0;
+                    // wr_col_cnt <= 5'd0;
                     
                     // Set up for next row
                     if (out_row < 27) begin
