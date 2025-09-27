@@ -311,7 +311,7 @@ module c1_layer_tb;
         output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch0.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch0[i]);
+                $fwrite(output_file, "%0d\n", output_ch0[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch0.txt");
         end
@@ -319,7 +319,7 @@ module c1_layer_tb;
         output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch1.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch1[i]);
+                $fwrite(output_file, "%0d\n", output_ch1[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch1.txt");
         end
@@ -327,7 +327,7 @@ module c1_layer_tb;
         output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch2.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch2[i]);
+                $fwrite(output_file, "%0d\n", output_ch2[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch2.txt");
         end
@@ -335,7 +335,7 @@ module c1_layer_tb;
         output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch3.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch3[i]);
+                $fwrite(output_file, "%0d\n", output_ch3[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch3.txt");
         end
@@ -343,7 +343,7 @@ module c1_layer_tb;
         output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch4.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch4[i]);
+                $fwrite(output_file, "%0d\n", output_ch4[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch4.txt");
         end
@@ -351,7 +351,7 @@ module c1_layer_tb;
         output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch5.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch5[i]);
+                $fwrite(output_file, "%0d\n", output_ch5[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch5.txt");
         end
