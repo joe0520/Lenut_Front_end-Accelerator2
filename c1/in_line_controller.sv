@@ -303,6 +303,7 @@ module in_line_controller(
 
                             if (wr_col_cnt == 31) begin
                                 wr_col_cnt <= 5'd0;
+                                wr_ptr <= (wr_ptr + 1) % 6;
                                 next_ifm_row <= next_ifm_row + 1;
                                 prefetch_done <= 1'b1;
                                 $display("Prefetch completed in ROLL: row %d into line %d at %0t",
@@ -322,7 +323,6 @@ module in_line_controller(
                         // Update all pointers atomically
                         out_row <= out_row + 1;
                         rd_base_ptr <= (rd_base_ptr + 1) % 6;
-                        wr_ptr <= (wr_ptr + 1) % 6;
                         win_col <= 5'd0;
 
                         // Set up for next row
