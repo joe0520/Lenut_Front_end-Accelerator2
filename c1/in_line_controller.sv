@@ -1,14 +1,15 @@
 // COMPLETELY FIXED: in_line_controller for 32x32 -> 28x28 5x5 convolution
 module in_line_controller(
     input                 clk,
-    input                 reset_n,        
-    input                 i_start,      
-    output reg            o_done,         
+    input                 reset_n,
+    input                 i_start,
+    output reg            o_done,
     input                 pixel_in_valid,
     input      [7:0]      pixel_in,
-    output reg            o_conv_valid,   
-    input                 i_conv_ready,   
-    output reg            o_conv_row_start, 
+    output reg            pixel_ready,    // New: indicates when ready to accept pixels
+    output reg            o_conv_valid,
+    input                 i_conv_ready,
+    output reg            o_conv_row_start,
     output reg            o_conv_row_end,   
     
     output reg signed [7:0] window_0_0, window_0_1, window_0_2, window_0_3, window_0_4,
@@ -75,11 +76,11 @@ module in_line_controller(
             end
 
             S_ROLL: begin
-                // ?”„ë¦¬í˜ì¹˜ê? ?•„?š”?•œ ê²½ìš°, ?™„ë£Œë  ?•Œê¹Œì? ??ê¸?
+                // ?ï¿½ï¿½ë¦¬í˜ì¹˜ï¿½? ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ ê²½ìš°, ?ï¿½ï¿½ë£Œë  ?ï¿½ï¿½ê¹Œï¿½? ??ï¿½?
                 if (prefetch_needed && !prefetch_done) begin
-                    next_state = S_ROLL; // ??ê¸? ?ƒ?ƒœ ?œ ì§?
+                    next_state = S_ROLL; // ??ï¿½? ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½ï¿½?
                 end else begin
-                    next_state = S_CONV_ROW; // ?‹¤?Œ ?–‰?œ¼ë¡? ì§„í–‰
+                    next_state = S_CONV_ROW; // ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ï¿½? ì§„í–‰
                 end
             end
             
@@ -105,6 +106,7 @@ module in_line_controller(
             o_conv_valid <= 1'b0;
             o_conv_row_start <= 1'b0;
             o_conv_row_end <= 1'b0;
+            pixel_ready <= 1'b0;
             
             // Reset pointers and counters
             rd_base_ptr <= 3'd0;
@@ -142,6 +144,7 @@ module in_line_controller(
                 S_IDLE: begin
                     o_done <= 1'b0;
                     o_conv_valid <= 1'b0;
+                    pixel_ready <= 1'b0;
                     if (i_start) begin
                         // Initialize for new convolution
                         rd_base_ptr <= 3'd0;
@@ -161,6 +164,7 @@ module in_line_controller(
                 
                 S_LOAD_INIT: begin
                     o_conv_valid <= 1'b0;
+                    pixel_ready <= 1'b1;  // Always ready to accept pixels during initial loading
                     if (pixel_in_valid) begin
                         // Load pixel into current position
                         line_buffer[next_ifm_row][wr_col_cnt] <= pixel_in;
@@ -205,6 +209,9 @@ module in_line_controller(
                 end
                 
                 S_CONV_ROW: begin
+                    // Set pixel_ready based on prefetch needs
+                    pixel_ready <= (prefetch_needed && !prefetch_done && next_ifm_row < 32);
+
                     // Handle convolution and prefetching
                     if (i_conv_ready && !row_complete) begin
                         // Generate 5x5 window
@@ -286,10 +293,12 @@ module in_line_controller(
                 
                 S_ROLL: begin
                     o_conv_valid <= 1'b0;
+                    // Set pixel_ready based on prefetch needs
+                    pixel_ready <= (prefetch_needed && !prefetch_done && next_ifm_row < 32);
 
-                    // ?”„ë¦¬í˜ì¹˜ê? ?•„?š”?•˜ê³? ?•„ì§? ?™„ë£Œë˜ì§? ?•Š?? ê²½ìš° ??ê¸?
+                    // ?ï¿½ï¿½ë¦¬í˜ì¹˜ï¿½? ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ï¿½? ?ï¿½ï¿½ï¿½? ?ï¿½ï¿½ë£Œë˜ï¿½? ?ï¿½ï¿½?? ê²½ìš° ??ï¿½?
                     if (prefetch_needed && !prefetch_done) begin
-                        // ?…? ¥ ë²”ìœ„ë¥? ë²—ì–´?‚˜ë©? ê°•ì œë¡? ?™„ë£? ì²˜ë¦¬
+                        // ?ï¿½ï¿½?ï¿½ï¿½ ë²”ìœ„ï¿½? ë²—ì–´?ï¿½ï¿½ï¿½? ê°•ì œï¿½? ?ï¿½ï¿½ï¿½? ì²˜ë¦¬
                         if (next_ifm_row >= 31) begin
                             $display("=== PREFETCH FORCED COMPLETE: No more input rows ===");
                             $display("next_ifm_row=%d >= 32, forcing prefetch_done at %0t", next_ifm_row, $time);
@@ -299,7 +308,7 @@ module in_line_controller(
                             $display("Waiting for row %d prefetch to line %d (col=%d) at %0t",
                                     next_ifm_row, wr_ptr, wr_col_cnt, $time);
 
-                            // ?”„ë¦¬í˜ì¹? ê³„ì† ì§„í–‰
+                            // ?ï¿½ï¿½ë¦¬í˜ï¿½? ê³„ì† ì§„í–‰
                             if (pixel_in_valid && next_ifm_row < 32) begin
                                 line_buffer[wr_ptr][wr_col_cnt] <= pixel_in;
 
@@ -321,7 +330,7 @@ module in_line_controller(
                             end
                         end
                     end else begin
-                        // ?”„ë¦¬í˜ì¹? ?™„ë£? ?˜?Š” ë¶ˆí•„?š”?•œ ê²½ìš° ?‹¤?Œ ?–‰?œ¼ë¡? ì§„í–‰
+                        // ?ï¿½ï¿½ë¦¬í˜ï¿½? ?ï¿½ï¿½ï¿½? ?ï¿½ï¿½?ï¿½ï¿½ ë¶ˆí•„?ï¿½ï¿½?ï¿½ï¿½ ê²½ìš° ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ï¿½? ì§„í–‰
                         row_complete <= 1'b0;
 
                         $display("=== ROLLING TO NEXT ROW ===");
@@ -335,10 +344,10 @@ module in_line_controller(
 
                         // Set up for next row
                         if (out_row < 27) begin
-                            // ?” ?´?ƒ ?”„ë¦¬í˜ì¹˜í•  ?…? ¥ ?–‰?´ ?—†?œ¼ë©? ?”„ë¦¬í˜ì¹? ë¶ˆí•„?š”
+                            // ?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½ë¦¬í˜ì¹˜í•  ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ï¿½? ?ï¿½ï¿½ë¦¬í˜ï¿½? ë¶ˆí•„?ï¿½ï¿½
                             if (next_ifm_row >= 32) begin
                                 prefetch_needed <= 1'b0;
-                                prefetch_done <= 1'b1; // ?´ë¯? ?™„ë£Œëœ ê²ƒìœ¼ë¡? ì²˜ë¦¬
+                                prefetch_done <= 1'b1; // ?ï¿½ï¿½ï¿½? ?ï¿½ï¿½ë£Œëœ ê²ƒìœ¼ï¿½? ì²˜ë¦¬
                             end else begin
                                 prefetch_needed <= 1'b1;
                                 prefetch_done <= 1'b0;
@@ -351,6 +360,7 @@ module in_line_controller(
                 S_FINISH: begin
                     o_conv_valid <= 1'b0;
                     o_done <= 1'b1;
+                    pixel_ready <= 1'b0;  // No more pixels needed
                     row_complete <= 1'b0;
                     prefetch_needed <= 1'b0;
                     prefetch_done <= 1'b0;

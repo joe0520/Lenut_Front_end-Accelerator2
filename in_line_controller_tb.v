@@ -21,6 +21,7 @@ module in_line_controller_tb();
     reg i_conv_ready;
 
     // Output Interface
+    wire pixel_ready;
     wire o_conv_valid;
     wire o_conv_row_start;
     wire o_conv_row_end;
@@ -59,6 +60,7 @@ module in_line_controller_tb();
         .o_done(o_done),
         .pixel_in_valid(pixel_in_valid),
         .pixel_in(pixel_in),
+        .pixel_ready(pixel_ready),
         .o_conv_valid(o_conv_valid),
         .i_conv_ready(i_conv_ready),
         .o_conv_row_start(o_conv_row_start),
@@ -152,6 +154,8 @@ module in_line_controller_tb();
             repeat(10) @(posedge clk);
 
             for (pixel_idx = 0; pixel_idx < 1024; pixel_idx = pixel_idx + 1) begin
+                // Only feed pixel when controller is ready to consume
+                wait_for_pixel_consumption();
                 @(posedge clk);
                 pixel_in_valid = 1;
                 pixel_in = test_image[pixel_idx];
@@ -170,6 +174,16 @@ module in_line_controller_tb();
             // Wait for completion
             wait(o_done);
             $display("Controller signaled done at time %0t", $time);
+        end
+    endtask
+
+    // Wait for Controller to be Ready for Pixel Consumption
+    task wait_for_pixel_consumption;
+        begin
+            // Simply wait for pixel_ready signal
+            while (!pixel_ready) begin
+                @(posedge clk);
+            end
         end
     endtask
 
