@@ -73,9 +73,14 @@ module in_line_controller(
                     end
                 end
             end
-            
+
             S_ROLL: begin
-                next_state = S_CONV_ROW;
+                // 프리페치가 필요한 경우, 완료될 때까지 대기
+                if (prefetch_needed && !prefetch_done) begin
+                    next_state = S_ROLL; // 대기 상태 유지
+                end else begin
+                    next_state = S_CONV_ROW; // 다음 행으로 진행
+                end
             end
             
             S_FINISH: begin
@@ -280,24 +285,52 @@ module in_line_controller(
                 
                 S_ROLL: begin
                     o_conv_valid <= 1'b0;
-                    row_complete <= 1'b0;
-                    
-                    $display("=== ROLLING TO NEXT ROW ===");
-                    $display("out_row: %d->%d, rd_base_ptr: %d->%d, wr_ptr: %d->%d at %0t",
-                             out_row, out_row+1, rd_base_ptr, (rd_base_ptr+1)%6, wr_ptr, (wr_ptr+1)%6, $time);
-                    
-                    // Update all pointers atomically
-                    out_row <= out_row + 1;
-                    rd_base_ptr <= (rd_base_ptr + 1) % 6;
-                    wr_ptr <= (wr_ptr + 1) % 6;
-                    win_col <= 5'd0;
-                    // wr_col_cnt <= 5'd0;
-                    
-                    // Set up for next row
-                    if (out_row < 27) begin
-                        prefetch_needed <= (next_ifm_row < 32) ? 1'b1 : 1'b0;
-                        prefetch_done <= 1'b0;
-                        o_conv_row_start <= 1'b1;
+
+                    // 프리페치가 필요하고 아직 완료되지 않은 경우 대기
+                    if (prefetch_needed && !prefetch_done) begin
+                        $display("=== WAITING FOR PREFETCH TO COMPLETE ===");
+                        $display("Waiting for row %d prefetch to line %d (col=%d) at %0t",
+                                next_ifm_row, wr_ptr, wr_col_cnt, $time);
+
+                        // 프리페치 계속 진행
+                        if (pixel_in_valid && next_ifm_row < 32) begin
+                            line_buffer[wr_ptr][wr_col_cnt] <= pixel_in;
+
+                            if (pixel_in != 8'd0) begin
+                                $display("Prefetch in ROLL: row=%d->line=%d, col=%d, val=%02h at %0t",
+                                        next_ifm_row, wr_ptr, wr_col_cnt, pixel_in, $time);
+                            end
+
+                            if (wr_col_cnt == 31) begin
+                                wr_col_cnt <= 5'd0;
+                                next_ifm_row <= next_ifm_row + 1;
+                                prefetch_done <= 1'b1;
+                                $display("Prefetch completed in ROLL: row %d into line %d at %0t",
+                                        next_ifm_row, wr_ptr, $time);
+                            end else begin
+                                wr_col_cnt <= wr_col_cnt + 1;
+                            end
+                        end
+                    end else begin
+                        // 프리페치 완료 또는 불필요한 경우 다음 행으로 진행
+                        row_complete <= 1'b0;
+
+                        $display("=== ROLLING TO NEXT ROW ===");
+                        $display("out_row: %d->%d, rd_base_ptr: %d->%d, wr_ptr: %d->%d at %0t",
+                                 out_row, out_row+1, rd_base_ptr, (rd_base_ptr+1)%6, wr_ptr, (wr_ptr+1)%6, $time);
+
+                        // Update all pointers atomically
+                        out_row <= out_row + 1;
+                        rd_base_ptr <= (rd_base_ptr + 1) % 6;
+                        wr_ptr <= (wr_ptr + 1) % 6;
+                        win_col <= 5'd0;
+
+                        // Set up for next row
+                        if (out_row < 27) begin
+                            prefetch_needed <= (next_ifm_row < 32) ? 1'b1 : 1'b0;
+                            prefetch_done <= 1'b0;
+                            o_conv_row_start <= 1'b1;
+                        end
                     end
                 end
                 
