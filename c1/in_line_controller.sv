@@ -289,28 +289,35 @@ module in_line_controller(
 
                     // 프리페치가 필요하고 아직 완료되지 않은 경우 대기
                     if (prefetch_needed && !prefetch_done) begin
-                        $display("=== WAITING FOR PREFETCH TO COMPLETE ===");
-                        $display("Waiting for row %d prefetch to line %d (col=%d) at %0t",
-                                next_ifm_row, wr_ptr, wr_col_cnt, $time);
+                        // 입력 범위를 벗어나면 강제로 완료 처리
+                        if (next_ifm_row >= 32) begin
+                            $display("=== PREFETCH FORCED COMPLETE: No more input rows ===");
+                            $display("next_ifm_row=%d >= 32, forcing prefetch_done at %0t", next_ifm_row, $time);
+                            prefetch_done <= 1'b1;
+                        end else begin
+                            $display("=== WAITING FOR PREFETCH TO COMPLETE ===");
+                            $display("Waiting for row %d prefetch to line %d (col=%d) at %0t",
+                                    next_ifm_row, wr_ptr, wr_col_cnt, $time);
 
-                        // 프리페치 계속 진행
-                        if (pixel_in_valid && next_ifm_row < 32) begin
-                            line_buffer[wr_ptr][wr_col_cnt] <= pixel_in;
+                            // 프리페치 계속 진행
+                            if (pixel_in_valid && next_ifm_row < 32) begin
+                                line_buffer[wr_ptr][wr_col_cnt] <= pixel_in;
 
-                            if (pixel_in != 8'd0) begin
-                                $display("Prefetch in ROLL: row=%d->line=%d, col=%d, val=%02h at %0t",
-                                        next_ifm_row, wr_ptr, wr_col_cnt, pixel_in, $time);
-                            end
+                                if (pixel_in != 8'd0) begin
+                                    $display("Prefetch in ROLL: row=%d->line=%d, col=%d, val=%02h at %0t",
+                                            next_ifm_row, wr_ptr, wr_col_cnt, pixel_in, $time);
+                                end
 
-                            if (wr_col_cnt == 31) begin
-                                wr_col_cnt <= 5'd0;
-                                wr_ptr <= (wr_ptr + 1) % 6;
-                                next_ifm_row <= next_ifm_row + 1;
-                                prefetch_done <= 1'b1;
-                                $display("Prefetch completed in ROLL: row %d into line %d at %0t",
-                                        next_ifm_row, wr_ptr, $time);
-                            end else begin
-                                wr_col_cnt <= wr_col_cnt + 1;
+                                if (wr_col_cnt == 31) begin
+                                    wr_col_cnt <= 5'd0;
+                                    wr_ptr <= (wr_ptr + 1) % 6;
+                                    next_ifm_row <= next_ifm_row + 1;
+                                    prefetch_done <= 1'b1;
+                                    $display("Prefetch completed in ROLL: row %d into line %d at %0t",
+                                            next_ifm_row, wr_ptr, $time);
+                                end else begin
+                                    wr_col_cnt <= wr_col_cnt + 1;
+                                end
                             end
                         end
                     end else begin
