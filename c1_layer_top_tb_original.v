@@ -13,6 +13,7 @@ module c1_layer_tb;
     // Pixel input
     reg pixel_in_valid;
     reg signed [7:0] pixel_in;
+    wire pixel_ready;
     
     // Configuration
     reg i_conv_ready;
@@ -49,13 +50,14 @@ module c1_layer_tb;
     reg [7:0] temp_val;
     integer scan_result;
     
-    // ëª¨ë‹ˆ?„°ë§? ë³??ˆ˜
+    // ëª¨ë‹ˆ?ï¿½ï¿½ï¿½? ï¿½??ï¿½ï¿½
     integer weights_load_time;
     integer first_output_time;
     integer last_output_time;
     integer total_outputs_received;
     integer consecutive_no_output;
-    
+    integer nz_count;
+
     // Clock generation - 200MHz
     initial begin
         clk = 0;
@@ -70,6 +72,7 @@ module c1_layer_tb;
         .o_done(o_done),
         .pixel_in_valid(pixel_in_valid),
         .pixel_in(pixel_in),
+        .pixel_ready(pixel_ready),
         .i_conv_ready(i_conv_ready),
         .relu_en(relu_en),
         .quan_en(quan_en),
@@ -87,10 +90,9 @@ module c1_layer_tb;
     );
     
     // =========================
-    // Initialize arrays and load input image  (?ˆ˜? •?œ ?ŒŒ?¼ ë¡œë”© ë¸”ë¡)
+    // Initialize arrays and load input image  (?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ ë¡œë”© ë¸”ë¡)
     // =========================
     initial begin
-        integer nz_count;
         // Clear output arrays
         for (i = 0; i < 784; i = i + 1) begin
             output_ch0[i] = 8'h00;
@@ -101,14 +103,14 @@ module c1_layer_tb;
             output_ch5[i] = 8'h00;
         end
 
-        // ?…? ¥ ?ŒŒ?¼ ë¡œë”© (HEX)
+        // ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ ë¡œë”© (HEX)
         $display("=== Loading Input Image ===");
         input_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/image_pixels_0.txt", "r");
         
         if (input_file != 0) begin
             $display("Found image_pixels_0.txt, loading data...");
             for (i = 0; i < 1024; i = i + 1) begin
-                // FIXED: HEX ?ŒŒ?¼?´ë¯?ë¡? %hë¡? ?½?˜, ë²”ìœ„ ì²´í¬ ì¶”ê?
+                // FIXED: HEX ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ï¿½?ï¿½? %hï¿½? ?ï¿½ï¿½?ï¿½ï¿½, ë²”ìœ„ ì²´í¬ ì¶”ï¿½?
                 scan_result = $fscanf(input_file, "%h", temp_val);
                 if (scan_result == 1) begin
                     if (temp_val <= 8'hFF) begin  // Valid 8-bit range
@@ -122,7 +124,7 @@ module c1_layer_tb;
                     input_image[i] = 8'sd0;
                 end
                 
-                // ?””ë²„ê·¸: ì²? 20ê°? ?”½??ê³? non-zero ?˜?‹¬ êµ¬ê°„ ?¼ë¶? ì¶œë ¥
+                // ?ï¿½ï¿½ë²„ê·¸: ï¿½? 20ï¿½? ?ï¿½ï¿½??ï¿½? non-zero ?ï¿½ï¿½?ï¿½ï¿½ êµ¬ê°„ ?ï¿½ï¿½ï¿½? ì¶œë ¥
                 if (i < 20 || (i >= 140 && i <= 145)) begin
                     $display("input_image[%3d] = %02h (%3d)", i, input_image[i], input_image[i]);
                 end
@@ -130,13 +132,13 @@ module c1_layer_tb;
             $fclose(input_file);
             $display("Successfully loaded 1024 pixels");
             
-            // ?…? ¥ ê²?ì¦?: ?˜ˆ?ƒ?˜?Š” non-zero ?œ„ì¹˜ë“¤ ?™•?¸(? ˆ?¼?Ÿ°?Š¤ ?¬?¸?Š¸)
+            // ?ï¿½ï¿½?ï¿½ï¿½ ï¿½?ï¿½?: ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ non-zero ?ï¿½ï¿½ì¹˜ë“¤ ?ï¿½ï¿½?ï¿½ï¿½(?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½)
             $display("Key positions check:");
             $display("  [140] = %02h (should be 01)", input_image[140]);
             $display("  [141] = %02h (should be 21)", input_image[141]);  
             $display("  [142] = %02h (should be 05)", input_image[142]);
 
-            // ê°„ë‹¨?•œ non-zero ê°œìˆ˜ ì¹´ìš´?Š¸
+            // ê°„ë‹¨?ï¿½ï¿½ non-zero ê°œìˆ˜ ì¹´ìš´?ï¿½ï¿½
             nz_count = 0;
             for (i = 0; i < 1024; i = i + 1)
                 if (input_image[i] != 8'h00) nz_count = nz_count + 1;
@@ -151,7 +153,7 @@ module c1_layer_tb;
     end
     
     // =========================
-    // Main test  (ì¶œë ¥ ? •? ¬ ë³´ì • ?¬?•¨ ?†’ ?‹¨?ˆœ ?ˆœì°? ìº¡ì²˜ë¡? ë³?ê²?)
+    // Main test  (ì¶œë ¥ ?ï¿½ï¿½?ï¿½ï¿½ ë³´ì • ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½ï¿½? ìº¡ì²˜ï¿½? ï¿½?ï¿½?)
     // =========================
     initial begin
         // Initialize monitoring variables
@@ -190,17 +192,17 @@ module c1_layer_tb;
         #20;
         i_start = 0;
         
-        // Weight loading ?™„ë£? ??ê¸?
+        // Weight loading ?ï¿½ï¿½ï¿½? ??ï¿½?
         wait(DUT.weights_loaded == 1);
         $display("Weights loaded at %0t (took %0t ns)", $time, $time - weights_load_time);
         
-        // Line controller ?‹œ?‘ ??ê¸?
+        // Line controller ?ï¿½ï¿½?ï¿½ï¿½ ??ï¿½?
         wait(DUT.line_controller_start == 1);
         $display("Line controller started at %0t", $time);
         
-        #100;  // ?•ˆ? •?™”
+        #100;  // ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½
         
-        // ?”½?? feeding + ì¶œë ¥ ëª¨ë‹ˆ?„°ë§?
+        // ?ï¿½ï¿½?? feeding + ì¶œë ¥ ëª¨ë‹ˆ?ï¿½ï¿½ï¿½?
         $display("\n=== Starting Pixel Feed and Output Monitoring ===");
         
         fork
@@ -208,21 +210,26 @@ module c1_layer_tb;
             begin
                 pixel_count = 0;
                 repeat(1024) begin
+                    // Wait for pixel_ready before feeding
+                    while (!pixel_ready) begin
+                        @(posedge clk);
+                    end
+
                     @(posedge clk);
                     pixel_in_valid = 1;
                     pixel_in = input_image[pixel_count];
-                    
+
                     if (pixel_count < 5) begin
                         $display("Feeding pixel[%4d] = %3d at %0t", pixel_count, pixel_in, $time);
                     end
-                    
+
                     pixel_count = pixel_count + 1;
-                    
+
                     if (pixel_count % 256 == 0) begin
                         $display("Fed %0d pixels at %0t", pixel_count, $time);
                     end
                 end
-                
+
                 @(posedge clk);
                 pixel_in_valid = 0;
                 $display("Finished feeding %0d pixels at %0t", pixel_count, $time);
@@ -237,10 +244,10 @@ module c1_layer_tb;
                     @(posedge clk);
                     
                     if (out_valid) begin
-                        // CRITICAL FIX: DUT?Š” ?´ë¯? ?¸?±?Š¤ 11ë¶??„° ?‹œ?‘?•˜?„ë¡? ?ˆ˜? •?¨
-                        // ?”°?¼?„œ ?…Œ?Š¤?Š¸ë²¤ì¹˜?Š” ?•˜?“œ?›¨?–´?˜ ì¶œë ¥?„ ê·¸ë?ë¡? ?ˆœì°¨ì ?œ¼ë¡? ???¥
+                        // CRITICAL FIX: DUT?ï¿½ï¿½ ?ï¿½ï¿½ï¿½? ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ 11ï¿½??ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ï¿½? ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½
+                        // ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ë²¤ì¹˜?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ ì¶œë ¥?ï¿½ï¿½ ê·¸ï¿½?ï¿½? ?ï¿½ï¿½ì°¨ì ?ï¿½ï¿½ï¿½? ???ï¿½ï¿½
                         if (output_idx == 0) begin
-                            first_output_time = $time; // ì²? ì¶œë ¥ ???„?Š¤?ƒ¬?”„ (?š”?•½?š©)
+                            first_output_time = $time; // ï¿½? ì¶œë ¥ ???ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ (?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½)
                         end
                         if (output_idx < 784) begin
                             output_ch0[output_idx] = out_ch0;
@@ -440,7 +447,7 @@ module c1_layer_tb;
                         DUT.state, DUT.kernel_idx, DUT.weights_loaded, $time);
             end
         end
-        // ?„¼?„° ì¢Œí‘œ(2,8) ì°ê¸°: o_window_col?? center, window_0_0?? top-left
+        // ?ï¿½ï¿½?ï¿½ï¿½ ì¢Œí‘œ(2,8) ì°ê¸°: o_window_col?? center, window_0_0?? top-left
         if (DUT.o_output_row == 5'd2 && DUT.o_window_col == 5'd8) begin
             $display("Critical window at (2,8): tl=%02h center=%02h @%0t",
                      DUT.window_0_0,   // top-left
