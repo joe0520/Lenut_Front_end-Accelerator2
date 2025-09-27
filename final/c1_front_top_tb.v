@@ -50,7 +50,7 @@ module c1_layer_tb;
     reg [7:0] temp_val;
     integer scan_result;
     
-    // ¸ð´Ï?   ?  ??  
+    // ï¿½ï¿½ï¿½?   ?  ??  
     integer weights_load_time;
     integer first_output_time;
     integer last_output_time;
@@ -90,7 +90,7 @@ module c1_layer_tb;
     );
     
     // =========================
-    // Initialize arrays and load input image  (?  ?  ?   ?  ?   ·Îµù ºí·Ï)
+    // Initialize arrays and load input image  (?  ?  ?   ?  ?   ï¿½Îµï¿½ ï¿½ï¿½ï¿½)
     // =========================
     initial begin
         // Clear output arrays
@@ -103,14 +103,14 @@ module c1_layer_tb;
             output_ch5[i] = 8'h00;
         end
 
-        // ?  ?   ?  ?   ·Îµù (HEX)
+        // ?  ?   ?  ?   ï¿½Îµï¿½ (HEX)
         $display("=== Loading Input Image ===");
-        input_file = $fopen("C:/VI_LFEA/LEFA/input/image_pixels_0.txt", "r");
+        input_file = $fopen("./data/image_pixels_0.txt", "r");
         
         if (input_file != 0) begin
             $display("Found image_pixels_0.txt, loading data...");
             for (i = 0; i < 1024; i = i + 1) begin
-                // FIXED: HEX ?  ?  ?   ? ? %h ? ?  ?  , ¹üÀ§ Ã¼Å© Ãß ?
+                // FIXED: HEX ?  ?  ?   ? ? %h ? ?  ?  , ï¿½ï¿½ï¿½ï¿½ Ã¼Å© ï¿½ï¿½ ?
                 scan_result = $fscanf(input_file, "%h", temp_val);
                 if (scan_result == 1) begin
                     if (temp_val <= 8'hFF) begin  // Valid 8-bit range
@@ -124,7 +124,7 @@ module c1_layer_tb;
                     input_image[i] = 8'sd0;
                 end
                 
-                // ?  ¹ö±×:  ? 20 ? ?  ?? ? non-zero ?  ?   ±¸°£ ?   ? Ãâ·Â
+                // ?  ï¿½ï¿½ï¿½ï¿½:  ? 20 ? ?  ?? ? non-zero ?  ?   ï¿½ï¿½ï¿½ï¿½ ?   ? ï¿½ï¿½ï¿½
                 if (i < 20 || (i >= 140 && i <= 145)) begin
                     $display("input_image[%3d] = %02h (%3d)", i, input_image[i], input_image[i]);
                 end
@@ -132,13 +132,13 @@ module c1_layer_tb;
             $fclose(input_file);
             $display("Successfully loaded 1024 pixels");
             
-            // ?  ?    ? ?: ?  ?  ?  ?   non-zero ?  Ä¡µé ?  ?  (?  ?  ?  ?   ?  ?  ?  )
+            // ?  ?    ? ?: ?  ?  ?  ?   non-zero ?  Ä¡ï¿½ï¿½ ?  ?  (?  ?  ?  ?   ?  ?  ?  )
             $display("Key positions check:");
             $display("  [140] = %02h (should be 01)", input_image[140]);
             $display("  [141] = %02h (should be 21)", input_image[141]);  
             $display("  [142] = %02h (should be 05)", input_image[142]);
 
-            // °£´Ü?   non-zero °³¼ö Ä«¿î?  
+            // ï¿½ï¿½ï¿½ï¿½?   non-zero ï¿½ï¿½ï¿½ï¿½ Ä«ï¿½ï¿½?  
             nz_count = 0;
             for (i = 0; i < 1024; i = i + 1)
                 if (input_image[i] != 8'h00) nz_count = nz_count + 1;
@@ -153,7 +153,7 @@ module c1_layer_tb;
     end
     
     // =========================
-    // Main test  (Ãâ·Â ?  ?   º¸Á¤ ?  ?   ?   ?  ?   ?   ? Ä¸Ã³ ?  ? ?)
+    // Main test  (ï¿½ï¿½ï¿½ ?  ?   ï¿½ï¿½ï¿½ï¿½ ?  ?   ?   ?  ?   ?   ? Ä¸Ã³ ?  ? ?)
     // =========================
     initial begin
         // Initialize monitoring variables
@@ -202,7 +202,7 @@ module c1_layer_tb;
         
         #100;  // ?  ?  ?  
         
-        // ?  ?? feeding + Ãâ·Â ¸ð´Ï?   ?
+        // ?  ?? feeding + ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½?   ?
         $display("\n=== Starting Pixel Feed and Output Monitoring ===");
         
         fork
@@ -245,9 +245,9 @@ module c1_layer_tb;
                     
                     if (out_valid) begin
                         // CRITICAL FIX: DUT?   ?   ? ?  ?  ?   11 ??   ?  ?  ?  ?   ? ?  ?  ?  
-                        // ?  ?  ?   ?  ?  ?  º¥Ä¡?   ?  ?  ?  ?  ?   Ãâ·Â?   ±× ? ? ?  Â÷Àû?   ? ???  
+                        // ?  ?  ?   ?  ?  ?  ï¿½ï¿½Ä¡?   ?  ?  ?  ?  ?   ï¿½ï¿½ï¿½?   ï¿½ï¿½ ? ? ?  ï¿½ï¿½ï¿½ï¿½?   ? ???  
                         if (output_idx == 0) begin
-                            first_output_time = $time; //  ? Ãâ·Â ???  ?  ?  ?   (?  ?  ?  )
+                            first_output_time = $time; //  ? ï¿½ï¿½ï¿½ ???  ?  ?  ?   (?  ?  ?  )
                         end
                         if (output_idx < 784) begin
                             output_ch0[output_idx] = out_ch0;
@@ -315,7 +315,7 @@ module c1_layer_tb;
         // Save outputs (HEX)
         $display("\n=== Saving Output Files ===");
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch0.txt", "w");
+        output_file = $fopen("./data/c1_output_ch0.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%0d\n", output_ch0[i]);
@@ -323,7 +323,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch0.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch1.txt", "w");
+        output_file = $fopen("./data/c1_output_ch1.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%0d\n", output_ch1[i]);
@@ -331,7 +331,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch1.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch2.txt", "w");
+        output_file = $fopen("./data/c1_output_ch2.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%0d\n", output_ch2[i]);
@@ -339,7 +339,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch2.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch3.txt", "w");
+        output_file = $fopen("./data/c1_output_ch3.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%0d\n", output_ch3[i]);
@@ -347,7 +347,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch3.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch4.txt", "w");
+        output_file = $fopen("./data/c1_output_ch4.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%0d\n", output_ch4[i]);
@@ -355,7 +355,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch4.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch5.txt", "w");
+        output_file = $fopen("./data/c1_output_ch5.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%0d\n", output_ch5[i]);
@@ -447,7 +447,7 @@ module c1_layer_tb;
                         DUT.state, DUT.kernel_idx, DUT.weights_loaded, $time);
             end
         end
-        // ?  ?   ÁÂÇ¥(2,8) Âï±â: o_window_col?? center, window_0_0?? top-left
+        // ?  ?   ï¿½ï¿½Ç¥(2,8) ï¿½ï¿½ï¿½: o_window_col?? center, window_0_0?? top-left
         if (DUT.o_output_row == 5'd2 && DUT.o_window_col == 5'd8) begin
             $display("Critical window at (2,8): tl=%02h center=%02h @%0t",
                      DUT.window_0_0,   // top-left

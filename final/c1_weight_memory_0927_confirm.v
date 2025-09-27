@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // C1 Weight Memory - Channel-based Version (FIXED)
-// ÁÖ¿ä °³¼±»çÇ×: Invalid channel Ã³¸®, ¸Þ¸ð¸® ÃÊ±âÈ­ °ËÁõ, ´õ ¾ÈÁ¤ÀûÀÎ FSM
+// ï¿½Ö¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: Invalid channel Ã³ï¿½ï¿½, ï¿½Þ¸ï¿½ ï¿½Ê±ï¿½È­ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ FSM
 
 module c1_weight_memory(
     input  wire        clk,
@@ -68,12 +68,12 @@ module c1_weight_memory(
         end
         
         // Load from hex files
-        $readmemh("C:/VI_LFEA/LEFA/weights/c1_weights_ch0.hex", weight_mem_ch0);
-        $readmemh("C:/VI_LFEA/LEFA/weights/c1_weights_ch1.hex", weight_mem_ch1);
-        $readmemh("C:/VI_LFEA/LEFA/weights/c1_weights_ch2.hex", weight_mem_ch2);
-        $readmemh("C:/VI_LFEA/LEFA/weights/c1_weights_ch3.hex", weight_mem_ch3);
-        $readmemh("C:/VI_LFEA/LEFA/weights/c1_weights_ch4.hex", weight_mem_ch4);
-        $readmemh("C:/VI_LFEA/LEFA/weights/c1_weights_ch5.hex", weight_mem_ch5);
+        $readmemh("./data/c1_weights_ch0.hex", weight_mem_ch0);
+        $readmemh("./data/c1_weights_ch1.hex", weight_mem_ch1);
+        $readmemh("./data/c1_weights_ch2.hex", weight_mem_ch2);
+        $readmemh("./data/c1_weights_ch3.hex", weight_mem_ch3);
+        $readmemh("./data/c1_weights_ch4.hex", weight_mem_ch4);
+        $readmemh("./data/c1_weights_ch5.hex", weight_mem_ch5);
         
         mem_init_done = 1'b1;
         
