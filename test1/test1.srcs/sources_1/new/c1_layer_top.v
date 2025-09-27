@@ -9,6 +9,7 @@ module c1_layer_top (
     // Pixel input interface
     input               pixel_in_valid,
     input signed [7:0]  pixel_in,
+    output              pixel_ready,
     
     // Convolution control
     input               i_conv_ready,
@@ -83,6 +84,7 @@ module c1_layer_top (
     integer i;
     
     // Line buffer controller
+    wire pixel_ready_internal;
     in_line_controller u_line_buffer (
         .clk(clk),
         .reset_n(reset_n),
@@ -90,6 +92,7 @@ module c1_layer_top (
         .o_done(line_controller_done),
         .pixel_in_valid(pixel_in_valid),
         .pixel_in(pixel_in),
+        .pixel_ready(pixel_ready_internal),
         .o_conv_valid(o_conv_valid),
         .i_conv_ready(i_conv_ready & weights_loaded),
         .o_conv_row_start(o_conv_row_start),
@@ -489,7 +492,8 @@ module c1_layer_top (
         end
     end
     
-    // Done signal
+    // Done signal and pixel ready
     assign o_done = line_controller_done;
+    assign pixel_ready = pixel_ready_internal;
     
 endmodule

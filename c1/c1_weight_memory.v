@@ -39,7 +39,7 @@ module c1_weight_memory(
     
     // Initialize memory from hex file
     initial begin
-        $readmemh("C:/VI_LFEA/LEFA/weights/c1_weights.hex", weight_mem);
+        $readmemh("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2//weights/c1_weights.hex", weight_mem);
         // Debug: Display weights to verify loading
         $display("Weight Memory Initialization Completed:");
         $display("Kernel 0: w0=%02x w1=%02x w12=%02x w24=%02x", 

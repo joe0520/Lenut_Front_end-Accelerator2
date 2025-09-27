@@ -1,14 +1,15 @@
 // COMPLETELY FIXED: in_line_controller for 32x32 -> 28x28 5x5 convolution
 module in_line_controller(
     input                 clk,
-    input                 reset_n,        
-    input                 i_start,      
-    output reg            o_done,         
+    input                 reset_n,
+    input                 i_start,
+    output reg            o_done,
     input                 pixel_in_valid,
     input      [7:0]      pixel_in,
-    output reg            o_conv_valid,   
-    input                 i_conv_ready,   
-    output reg            o_conv_row_start, 
+    output reg            pixel_ready,    // New: indicates when ready to accept pixels
+    output reg            o_conv_valid,
+    input                 i_conv_ready,
+    output reg            o_conv_row_start,
     output reg            o_conv_row_end,   
     
     output reg signed [7:0] window_0_0, window_0_1, window_0_2, window_0_3, window_0_4,
@@ -73,9 +74,14 @@ module in_line_controller(
                     end
                 end
             end
-            
+
             S_ROLL: begin
-                next_state = S_CONV_ROW;
+                // ?��리페치�? ?��?��?�� 경우, ?��료될 ?��까�? ??�??
+                if (prefetch_needed && !prefetch_done) begin
+                    next_state = S_ROLL; // ??�?? ?��?�� ?���??
+                end else begin
+                    next_state = S_CONV_ROW; // ?��?�� ?��?���?? 진행
+                end
             end
             
             S_FINISH: begin
@@ -100,6 +106,7 @@ module in_line_controller(
             o_conv_valid <= 1'b0;
             o_conv_row_start <= 1'b0;
             o_conv_row_end <= 1'b0;
+            pixel_ready <= 1'b0;
             
             // Reset pointers and counters
             rd_base_ptr <= 3'd0;
@@ -137,6 +144,7 @@ module in_line_controller(
                 S_IDLE: begin
                     o_done <= 1'b0;
                     o_conv_valid <= 1'b0;
+                    pixel_ready <= 1'b0;
                     if (i_start) begin
                         // Initialize for new convolution
                         rd_base_ptr <= 3'd0;
@@ -156,6 +164,7 @@ module in_line_controller(
                 
                 S_LOAD_INIT: begin
                     o_conv_valid <= 1'b0;
+                    pixel_ready <= 1'b1;  // Always ready to accept pixels during initial loading
                     if (pixel_in_valid) begin
                         // Load pixel into current position
                         line_buffer[next_ifm_row][wr_col_cnt] <= pixel_in;
@@ -200,6 +209,9 @@ module in_line_controller(
                 end
                 
                 S_CONV_ROW: begin
+                    // Set pixel_ready based on prefetch needs
+                    pixel_ready <= (prefetch_needed && !prefetch_done && next_ifm_row < 32);
+
                     // Handle convolution and prefetching
                     if (i_conv_ready && !row_complete) begin
                         // Generate 5x5 window
@@ -280,30 +292,74 @@ module in_line_controller(
                 
                 S_ROLL: begin
                     o_conv_valid <= 1'b0;
-                    row_complete <= 1'b0;
-                    
-                    $display("=== ROLLING TO NEXT ROW ===");
-                    $display("out_row: %d->%d, rd_base_ptr: %d->%d, wr_ptr: %d->%d at %0t",
-                             out_row, out_row+1, rd_base_ptr, (rd_base_ptr+1)%6, wr_ptr, (wr_ptr+1)%6, $time);
-                    
-                    // Update all pointers atomically
-                    out_row <= out_row + 1;
-                    rd_base_ptr <= (rd_base_ptr + 1) % 6;
-                    wr_ptr <= (wr_ptr + 1) % 6;
-                    win_col <= 5'd0;
-                    // wr_col_cnt <= 5'd0;
-                    
-                    // Set up for next row
-                    if (out_row < 27) begin
-                        prefetch_needed <= (next_ifm_row < 32) ? 1'b1 : 1'b0;
-                        prefetch_done <= 1'b0;
-                        o_conv_row_start <= 1'b1;
+                    // Set pixel_ready based on prefetch needs
+                    pixel_ready <= (prefetch_needed && !prefetch_done && next_ifm_row < 32);
+
+                    // ?��리페치�? ?��?��?���?? ?���?? ?��료되�?? ?��?? 경우 ??�??
+                    if (prefetch_needed && !prefetch_done) begin
+                        // ?��?�� 범위�?? 벗어?���?? 강제�?? ?���?? 처리
+                        if (next_ifm_row >= 31) begin
+                            $display("=== PREFETCH FORCED COMPLETE: No more input rows ===");
+                            $display("next_ifm_row=%d >= 32, forcing prefetch_done at %0t", next_ifm_row, $time);
+                            prefetch_done <= 1'b1;
+                        end else begin
+                            $display("=== WAITING FOR PREFETCH TO COMPLETE ===");
+                            $display("Waiting for row %d prefetch to line %d (col=%d) at %0t",
+                                    next_ifm_row, wr_ptr, wr_col_cnt, $time);
+
+                            // ?��리페�?? 계속 진행
+                            if (pixel_in_valid && next_ifm_row < 32) begin
+                                line_buffer[wr_ptr][wr_col_cnt] <= pixel_in;
+
+                                if (pixel_in != 8'd0) begin
+                                    $display("Prefetch in ROLL: row=%d->line=%d, col=%d, val=%02h at %0t",
+                                            next_ifm_row, wr_ptr, wr_col_cnt, pixel_in, $time);
+                                end
+
+                                if (wr_col_cnt == 31) begin
+                                    wr_col_cnt <= 5'd0;
+                                    next_ifm_row <= next_ifm_row + 1;
+                                    prefetch_done <= 1'b1;
+                                    $display("Prefetch completed in ROLL: row %d into line %d at %0t",
+                                            next_ifm_row, wr_ptr, $time);
+                                end else begin
+                                    wr_col_cnt <= wr_col_cnt + 1;
+                                end
+                            end
+                        end
+                    end else begin
+                        // ?��리페�?? ?���?? ?��?�� 불필?��?�� 경우 ?��?�� ?��?���?? 진행
+                        row_complete <= 1'b0;
+
+                        $display("=== ROLLING TO NEXT ROW ===");
+                        $display("out_row: %d->%d, rd_base_ptr: %d->%d, wr_ptr: %d->%d at %0t",
+                                 out_row, out_row+1, rd_base_ptr, (rd_base_ptr+1)%6, wr_ptr, (wr_ptr+1)%6, $time);
+
+                        // Update all pointers atomically
+                        out_row <= out_row + 1;
+                        rd_base_ptr <= (rd_base_ptr + 1) % 6;
+                        wr_ptr <= (wr_ptr + 1) % 6;
+                        win_col <= 5'd0;
+
+                        // Set up for next row
+                        if (out_row < 27) begin
+                            // ?�� ?��?�� ?��리페치할 ?��?�� ?��?�� ?��?���?? ?��리페�?? 불필?��
+                            if (next_ifm_row >= 32) begin
+                                prefetch_needed <= 1'b0;
+                                prefetch_done <= 1'b1; // ?���?? ?��료된 것으�?? 처리
+                            end else begin
+                                prefetch_needed <= 1'b1;
+                                prefetch_done <= 1'b0;
+                            end
+                            o_conv_row_start <= 1'b1;
+                        end
                     end
                 end
                 
                 S_FINISH: begin
                     o_conv_valid <= 1'b0;
                     o_done <= 1'b1;
+                    pixel_ready <= 1'b0;  // No more pixels needed
                     row_complete <= 1'b0;
                     prefetch_needed <= 1'b0;
                     prefetch_done <= 1'b0;

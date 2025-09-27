@@ -21,6 +21,7 @@ module in_line_controller_tb();
     reg i_conv_ready;
 
     // Output Interface
+    wire pixel_ready;
     wire o_conv_valid;
     wire o_conv_row_start;
     wire o_conv_row_end;
@@ -59,6 +60,7 @@ module in_line_controller_tb();
         .o_done(o_done),
         .pixel_in_valid(pixel_in_valid),
         .pixel_in(pixel_in),
+        .pixel_ready(pixel_ready),
         .o_conv_valid(o_conv_valid),
         .i_conv_ready(i_conv_ready),
         .o_conv_row_start(o_conv_row_start),
@@ -152,6 +154,8 @@ module in_line_controller_tb();
             repeat(10) @(posedge clk);
 
             for (pixel_idx = 0; pixel_idx < 1024; pixel_idx = pixel_idx + 1) begin
+                // Only feed pixel when controller is ready to consume
+                wait_for_pixel_consumption();
                 @(posedge clk);
                 pixel_in_valid = 1;
                 pixel_in = test_image[pixel_idx];
@@ -173,13 +177,40 @@ module in_line_controller_tb();
         end
     endtask
 
+    // Wait for Controller to be Ready for Pixel Consumption
+    task wait_for_pixel_consumption;
+        begin
+            // Simply wait for pixel_ready signal
+            while (!pixel_ready) begin
+                @(posedge clk);
+            end
+        end
+    endtask
+
     // Window Monitoring Task
     task monitor_windows;
+        integer expected_center_row, expected_center_col, expected_idx;
+        reg [7:0] expected_center_val;
+        integer error_count;
         begin
+            error_count = 0;
             while (!o_done) begin
                 @(posedge clk);
                 if (o_conv_valid) begin
                     window_count = window_count + 1;
+
+                    // Calculate expected center pixel position
+                    expected_center_row = (window_count - 1) / 28 + 2; // Add 2 for padding
+                    expected_center_col = (window_count - 1) % 28 + 2; // Add 2 for padding
+                    expected_idx = expected_center_row * 32 + expected_center_col;
+                    expected_center_val = test_image[expected_idx];
+
+                    // Verify center pixel
+                    if (window_2_2 !== expected_center_val) begin
+                        $display("ERROR: Window %0d center mismatch at (%0d,%0d). Expected: %02h, Got: %02h",
+                                window_count, expected_center_row, expected_center_col, expected_center_val, window_2_2);
+                        error_count = error_count + 1;
+                    end
 
                     // Print detailed window info for first few windows and problem area
                     if (window_count <= 5 || (window_count >= 90 && window_count <= 95)) begin
@@ -198,10 +229,17 @@ module in_line_controller_tb();
                         $display("Center pixel: %02h", window_2_2);
                     end else if (window_count % 28 == 1) begin
                         // Print start of each row
-                        $display("Window %0d: Starting row %0d, center=%02h at %0t",
-                                window_count, o_output_row_cnt, window_2_2, $time);
+                        $display("Window %0d: Starting row %0d, center=%02h (expected=%02h) at %0t",
+                                window_count, o_output_row_cnt, window_2_2, expected_center_val, $time);
                     end
                 end
+            end
+
+            // Report verification results
+            if (error_count == 0) begin
+                $display("=== WINDOW VERIFICATION PASSED: All %0d windows have correct center pixels ===", window_count);
+            end else begin
+                $display("=== WINDOW VERIFICATION FAILED: %0d errors found in %0d windows ===", error_count, window_count);
             end
         end
     endtask

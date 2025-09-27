@@ -13,6 +13,7 @@ module c1_layer_tb;
     // Pixel input
     reg pixel_in_valid;
     reg signed [7:0] pixel_in;
+    wire pixel_ready;
     
     // Configuration
     reg i_conv_ready;
@@ -49,13 +50,14 @@ module c1_layer_tb;
     reg [7:0] temp_val;
     integer scan_result;
     
-    // 모니터링 변수
+    // 모니?���? �??��
     integer weights_load_time;
     integer first_output_time;
     integer last_output_time;
     integer total_outputs_received;
     integer consecutive_no_output;
-    
+    integer nz_count;
+
     // Clock generation - 200MHz
     initial begin
         clk = 0;
@@ -70,6 +72,7 @@ module c1_layer_tb;
         .o_done(o_done),
         .pixel_in_valid(pixel_in_valid),
         .pixel_in(pixel_in),
+        .pixel_ready(pixel_ready),
         .i_conv_ready(i_conv_ready),
         .relu_en(relu_en),
         .quan_en(quan_en),
@@ -87,10 +90,9 @@ module c1_layer_tb;
     );
     
     // =========================
-    // Initialize arrays and load input image  (수정된 파일 로딩 블록)
+    // Initialize arrays and load input image  (?��?��?�� ?��?�� 로딩 블록)
     // =========================
     initial begin
-        integer nz_count;
         // Clear output arrays
         for (i = 0; i < 784; i = i + 1) begin
             output_ch0[i] = 8'h00;
@@ -101,14 +103,14 @@ module c1_layer_tb;
             output_ch5[i] = 8'h00;
         end
 
-        // 입력 파일 로딩 (HEX)
+        // ?��?�� ?��?�� 로딩 (HEX)
         $display("=== Loading Input Image ===");
-        input_file = $fopen("C:/VI_LFEA/LEFA/input/image_pixels_0.txt", "r");
+        input_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/image_pixels_0.txt", "r");
         
         if (input_file != 0) begin
             $display("Found image_pixels_0.txt, loading data...");
             for (i = 0; i < 1024; i = i + 1) begin
-                // FIXED: HEX 파일이므로 %h로 읽되, 범위 체크 추가
+                // FIXED: HEX ?��?��?���?�? %h�? ?��?��, 범위 체크 추�?
                 scan_result = $fscanf(input_file, "%h", temp_val);
                 if (scan_result == 1) begin
                     if (temp_val <= 8'hFF) begin  // Valid 8-bit range
@@ -122,7 +124,7 @@ module c1_layer_tb;
                     input_image[i] = 8'sd0;
                 end
                 
-                // 디버그: 첫 20개 픽셀과 non-zero 의심 구간 일부 출력
+                // ?��버그: �? 20�? ?��??�? non-zero ?��?�� 구간 ?���? 출력
                 if (i < 20 || (i >= 140 && i <= 145)) begin
                     $display("input_image[%3d] = %02h (%3d)", i, input_image[i], input_image[i]);
                 end
@@ -130,13 +132,13 @@ module c1_layer_tb;
             $fclose(input_file);
             $display("Successfully loaded 1024 pixels");
             
-            // 입력 검증: 예상되는 non-zero 위치들 확인(레퍼런스 포인트)
+            // ?��?�� �?�?: ?��?��?��?�� non-zero ?��치들 ?��?��(?��?��?��?�� ?��?��?��)
             $display("Key positions check:");
             $display("  [140] = %02h (should be 01)", input_image[140]);
             $display("  [141] = %02h (should be 21)", input_image[141]);  
             $display("  [142] = %02h (should be 05)", input_image[142]);
 
-            // 간단한 non-zero 개수 카운트
+            // 간단?�� non-zero 개수 카운?��
             nz_count = 0;
             for (i = 0; i < 1024; i = i + 1)
                 if (input_image[i] != 8'h00) nz_count = nz_count + 1;
@@ -151,7 +153,7 @@ module c1_layer_tb;
     end
     
     // =========================
-    // Main test  (출력 정렬 보정 포함 → 단순 순차 캡처로 변경)
+    // Main test  (출력 ?��?�� 보정 ?��?�� ?�� ?��?�� ?���? 캡처�? �?�?)
     // =========================
     initial begin
         // Initialize monitoring variables
@@ -190,17 +192,17 @@ module c1_layer_tb;
         #20;
         i_start = 0;
         
-        // Weight loading 완료 대기
+        // Weight loading ?���? ??�?
         wait(DUT.weights_loaded == 1);
         $display("Weights loaded at %0t (took %0t ns)", $time, $time - weights_load_time);
         
-        // Line controller 시작 대기
+        // Line controller ?��?�� ??�?
         wait(DUT.line_controller_start == 1);
         $display("Line controller started at %0t", $time);
         
-        #100;  // 안정화
+        #100;  // ?��?��?��
         
-        // 픽셀 feeding + 출력 모니터링
+        // ?��?? feeding + 출력 모니?���?
         $display("\n=== Starting Pixel Feed and Output Monitoring ===");
         
         fork
@@ -208,21 +210,26 @@ module c1_layer_tb;
             begin
                 pixel_count = 0;
                 repeat(1024) begin
+                    // Wait for pixel_ready before feeding
+                    while (!pixel_ready) begin
+                        @(posedge clk);
+                    end
+
                     @(posedge clk);
                     pixel_in_valid = 1;
                     pixel_in = input_image[pixel_count];
-                    
+
                     if (pixel_count < 5) begin
                         $display("Feeding pixel[%4d] = %3d at %0t", pixel_count, pixel_in, $time);
                     end
-                    
+
                     pixel_count = pixel_count + 1;
-                    
+
                     if (pixel_count % 256 == 0) begin
                         $display("Fed %0d pixels at %0t", pixel_count, $time);
                     end
                 end
-                
+
                 @(posedge clk);
                 pixel_in_valid = 0;
                 $display("Finished feeding %0d pixels at %0t", pixel_count, $time);
@@ -237,10 +244,10 @@ module c1_layer_tb;
                     @(posedge clk);
                     
                     if (out_valid) begin
-                        // CRITICAL FIX: DUT는 이미 인덱스 11부터 시작하도록 수정됨
-                        // 따라서 테스트벤치는 하드웨어의 출력을 그대로 순차적으로 저장
+                        // CRITICAL FIX: DUT?�� ?���? ?��?��?�� 11�??�� ?��?��?��?���? ?��?��?��
+                        // ?��?��?�� ?��?��?��벤치?�� ?��?��?��?��?�� 출력?�� 그�?�? ?��차적?���? ???��
                         if (output_idx == 0) begin
-                            first_output_time = $time; // 첫 출력 타임스탬프 (요약용)
+                            first_output_time = $time; // �? 출력 ???��?��?��?�� (?��?��?��)
                         end
                         if (output_idx < 784) begin
                             output_ch0[output_idx] = out_ch0;
@@ -308,50 +315,50 @@ module c1_layer_tb;
         // Save outputs (HEX)
         $display("\n=== Saving Output Files ===");
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch0.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch0.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch0[i]);
+                $fwrite(output_file, "%0d\n", output_ch0[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch0.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch1.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch1.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch1[i]);
+                $fwrite(output_file, "%0d\n", output_ch1[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch1.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch2.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch2.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch2[i]);
+                $fwrite(output_file, "%0d\n", output_ch2[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch2.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch3.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch3.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch3[i]);
+                $fwrite(output_file, "%0d\n", output_ch3[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch3.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch4.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch4.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch4[i]);
+                $fwrite(output_file, "%0d\n", output_ch4[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch4.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch5.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch5.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
-                $fwrite(output_file, "%02h\n", output_ch5[i]);
+                $fwrite(output_file, "%0d\n", output_ch5[i]);
             $fclose(output_file);
             $display("Saved c1_output_ch5.txt");
         end
@@ -440,7 +447,7 @@ module c1_layer_tb;
                         DUT.state, DUT.kernel_idx, DUT.weights_loaded, $time);
             end
         end
-        // 센터 좌표(2,8) 찍기: o_window_col은 center, window_0_0은 top-left
+        // ?��?�� 좌표(2,8) 찍기: o_window_col?? center, window_0_0?? top-left
         if (DUT.o_output_row == 5'd2 && DUT.o_window_col == 5'd8) begin
             $display("Critical window at (2,8): tl=%02h center=%02h @%0t",
                      DUT.window_0_0,   // top-left
