@@ -76,11 +76,11 @@ module in_line_controller(
             end
 
             S_ROLL: begin
-                // ?��리페치�? ?��?��?�� 경우, ?��료될 ?��까�? ??�?
+                // ?��리페치�? ?��?��?�� 경우, ?��료될 ?��까�? ??�??
                 if (prefetch_needed && !prefetch_done) begin
-                    next_state = S_ROLL; // ??�? ?��?�� ?���?
+                    next_state = S_ROLL; // ??�?? ?��?�� ?���??
                 end else begin
-                    next_state = S_CONV_ROW; // ?��?�� ?��?���? 진행
+                    next_state = S_CONV_ROW; // ?��?�� ?��?���?? 진행
                 end
             end
             
@@ -280,7 +280,6 @@ module in_line_controller(
                         
                         if (wr_col_cnt == 31) begin
                             wr_col_cnt <= 5'd0;
-                            wr_ptr <= (wr_ptr + 1) % 6;
                             next_ifm_row <= next_ifm_row + 1;
                             prefetch_done <= 1'b1;
                             $display("Prefetch completed: row %d into line %d at %0t", 
@@ -296,9 +295,9 @@ module in_line_controller(
                     // Set pixel_ready based on prefetch needs
                     pixel_ready <= (prefetch_needed && !prefetch_done && next_ifm_row < 32);
 
-                    // ?��리페치�? ?��?��?���? ?���? ?��료되�? ?��?? 경우 ??�?
+                    // ?��리페치�? ?��?��?���?? ?���?? ?��료되�?? ?��?? 경우 ??�??
                     if (prefetch_needed && !prefetch_done) begin
-                        // ?��?�� 범위�? 벗어?���? 강제�? ?���? 처리
+                        // ?��?�� 범위�?? 벗어?���?? 강제�?? ?���?? 처리
                         if (next_ifm_row >= 31) begin
                             $display("=== PREFETCH FORCED COMPLETE: No more input rows ===");
                             $display("next_ifm_row=%d >= 32, forcing prefetch_done at %0t", next_ifm_row, $time);
@@ -308,7 +307,7 @@ module in_line_controller(
                             $display("Waiting for row %d prefetch to line %d (col=%d) at %0t",
                                     next_ifm_row, wr_ptr, wr_col_cnt, $time);
 
-                            // ?��리페�? 계속 진행
+                            // ?��리페�?? 계속 진행
                             if (pixel_in_valid && next_ifm_row < 32) begin
                                 line_buffer[wr_ptr][wr_col_cnt] <= pixel_in;
 
@@ -319,7 +318,6 @@ module in_line_controller(
 
                                 if (wr_col_cnt == 31) begin
                                     wr_col_cnt <= 5'd0;
-                                    wr_ptr <= (wr_ptr + 1) % 6;
                                     next_ifm_row <= next_ifm_row + 1;
                                     prefetch_done <= 1'b1;
                                     $display("Prefetch completed in ROLL: row %d into line %d at %0t",
@@ -330,7 +328,7 @@ module in_line_controller(
                             end
                         end
                     end else begin
-                        // ?��리페�? ?���? ?��?�� 불필?��?�� 경우 ?��?�� ?��?���? 진행
+                        // ?��리페�?? ?���?? ?��?�� 불필?��?�� 경우 ?��?�� ?��?���?? 진행
                         row_complete <= 1'b0;
 
                         $display("=== ROLLING TO NEXT ROW ===");
@@ -340,14 +338,15 @@ module in_line_controller(
                         // Update all pointers atomically
                         out_row <= out_row + 1;
                         rd_base_ptr <= (rd_base_ptr + 1) % 6;
+                        wr_ptr <= (wr_ptr + 1) % 6;
                         win_col <= 5'd0;
 
                         // Set up for next row
                         if (out_row < 27) begin
-                            // ?�� ?��?�� ?��리페치할 ?��?�� ?��?�� ?��?���? ?��리페�? 불필?��
+                            // ?�� ?��?�� ?��리페치할 ?��?�� ?��?�� ?��?���?? ?��리페�?? 불필?��
                             if (next_ifm_row >= 32) begin
                                 prefetch_needed <= 1'b0;
-                                prefetch_done <= 1'b1; // ?���? ?��료된 것으�? 처리
+                                prefetch_done <= 1'b1; // ?���?? ?��료된 것으�?? 처리
                             end else begin
                                 prefetch_needed <= 1'b1;
                                 prefetch_done <= 1'b0;
