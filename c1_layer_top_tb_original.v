@@ -49,7 +49,7 @@ module c1_layer_tb;
     reg [7:0] temp_val;
     integer scan_result;
     
-    // ëª¨ë‹ˆí„°ë§ ë³€ìˆ˜
+    // ëª¨ë‹ˆ?„°ë§? ë³??ˆ˜
     integer weights_load_time;
     integer first_output_time;
     integer last_output_time;
@@ -87,7 +87,7 @@ module c1_layer_tb;
     );
     
     // =========================
-    // Initialize arrays and load input image  (ìˆ˜ì •ëœ íŒŒì¼ ë¡œë”© ë¸”ë¡)
+    // Initialize arrays and load input image  (?ˆ˜? •?œ ?ŒŒ?¼ ë¡œë”© ë¸”ë¡)
     // =========================
     initial begin
         integer nz_count;
@@ -101,14 +101,14 @@ module c1_layer_tb;
             output_ch5[i] = 8'h00;
         end
 
-        // ì…ë ¥ íŒŒì¼ ë¡œë”© (HEX)
+        // ?…? ¥ ?ŒŒ?¼ ë¡œë”© (HEX)
         $display("=== Loading Input Image ===");
-        input_file = $fopen("C:/VI_LFEA/LEFA/input/image_pixels_0.txt", "r");
+        input_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/image_pixels_0.txt", "r");
         
         if (input_file != 0) begin
             $display("Found image_pixels_0.txt, loading data...");
             for (i = 0; i < 1024; i = i + 1) begin
-                // FIXED: HEX íŒŒì¼ì´ë¯€ë¡œ %hë¡œ ì½ë˜, ë²”ìœ„ ì²´í¬ ì¶”ê°€
+                // FIXED: HEX ?ŒŒ?¼?´ë¯?ë¡? %hë¡? ?½?˜, ë²”ìœ„ ì²´í¬ ì¶”ê?
                 scan_result = $fscanf(input_file, "%h", temp_val);
                 if (scan_result == 1) begin
                     if (temp_val <= 8'hFF) begin  // Valid 8-bit range
@@ -122,7 +122,7 @@ module c1_layer_tb;
                     input_image[i] = 8'sd0;
                 end
                 
-                // ë””ë²„ê·¸: ì²« 20ê°œ í”½ì…€ê³¼ non-zero ì˜ì‹¬ êµ¬ê°„ ì¼ë¶€ ì¶œë ¥
+                // ?””ë²„ê·¸: ì²? 20ê°? ?”½??ê³? non-zero ?˜?‹¬ êµ¬ê°„ ?¼ë¶? ì¶œë ¥
                 if (i < 20 || (i >= 140 && i <= 145)) begin
                     $display("input_image[%3d] = %02h (%3d)", i, input_image[i], input_image[i]);
                 end
@@ -130,13 +130,13 @@ module c1_layer_tb;
             $fclose(input_file);
             $display("Successfully loaded 1024 pixels");
             
-            // ì…ë ¥ ê²€ì¦: ì˜ˆìƒë˜ëŠ” non-zero ìœ„ì¹˜ë“¤ í™•ì¸(ë ˆí¼ëŸ°ìŠ¤ í¬ì¸íŠ¸)
+            // ?…? ¥ ê²?ì¦?: ?˜ˆ?ƒ?˜?Š” non-zero ?œ„ì¹˜ë“¤ ?™•?¸(? ˆ?¼?Ÿ°?Š¤ ?¬?¸?Š¸)
             $display("Key positions check:");
             $display("  [140] = %02h (should be 01)", input_image[140]);
             $display("  [141] = %02h (should be 21)", input_image[141]);  
             $display("  [142] = %02h (should be 05)", input_image[142]);
 
-            // ê°„ë‹¨í•œ non-zero ê°œìˆ˜ ì¹´ìš´íŠ¸
+            // ê°„ë‹¨?•œ non-zero ê°œìˆ˜ ì¹´ìš´?Š¸
             nz_count = 0;
             for (i = 0; i < 1024; i = i + 1)
                 if (input_image[i] != 8'h00) nz_count = nz_count + 1;
@@ -151,7 +151,7 @@ module c1_layer_tb;
     end
     
     // =========================
-    // Main test  (ì¶œë ¥ ì •ë ¬ ë³´ì • í¬í•¨ â†’ ë‹¨ìˆœ ìˆœì°¨ ìº¡ì²˜ë¡œ ë³€ê²½)
+    // Main test  (ì¶œë ¥ ? •? ¬ ë³´ì • ?¬?•¨ ?†’ ?‹¨?ˆœ ?ˆœì°? ìº¡ì²˜ë¡? ë³?ê²?)
     // =========================
     initial begin
         // Initialize monitoring variables
@@ -190,17 +190,17 @@ module c1_layer_tb;
         #20;
         i_start = 0;
         
-        // Weight loading ì™„ë£Œ ëŒ€ê¸°
+        // Weight loading ?™„ë£? ??ê¸?
         wait(DUT.weights_loaded == 1);
         $display("Weights loaded at %0t (took %0t ns)", $time, $time - weights_load_time);
         
-        // Line controller ì‹œì‘ ëŒ€ê¸°
+        // Line controller ?‹œ?‘ ??ê¸?
         wait(DUT.line_controller_start == 1);
         $display("Line controller started at %0t", $time);
         
-        #100;  // ì•ˆì •í™”
+        #100;  // ?•ˆ? •?™”
         
-        // í”½ì…€ feeding + ì¶œë ¥ ëª¨ë‹ˆí„°ë§
+        // ?”½?? feeding + ì¶œë ¥ ëª¨ë‹ˆ?„°ë§?
         $display("\n=== Starting Pixel Feed and Output Monitoring ===");
         
         fork
@@ -237,10 +237,10 @@ module c1_layer_tb;
                     @(posedge clk);
                     
                     if (out_valid) begin
-                        // CRITICAL FIX: DUTëŠ” ì´ë¯¸ ì¸ë±ìŠ¤ 11ë¶€í„° ì‹œì‘í•˜ë„ë¡ ìˆ˜ì •ë¨
-                        // ë”°ë¼ì„œ í…ŒìŠ¤íŠ¸ë²¤ì¹˜ëŠ” í•˜ë“œì›¨ì–´ì˜ ì¶œë ¥ì„ ê·¸ëŒ€ë¡œ ìˆœì°¨ì ìœ¼ë¡œ ì €ì¥
+                        // CRITICAL FIX: DUT?Š” ?´ë¯? ?¸?±?Š¤ 11ë¶??„° ?‹œ?‘?•˜?„ë¡? ?ˆ˜? •?¨
+                        // ?”°?¼?„œ ?…Œ?Š¤?Š¸ë²¤ì¹˜?Š” ?•˜?“œ?›¨?–´?˜ ì¶œë ¥?„ ê·¸ë?ë¡? ?ˆœì°¨ì ?œ¼ë¡? ???¥
                         if (output_idx == 0) begin
-                            first_output_time = $time; // ì²« ì¶œë ¥ íƒ€ì„ìŠ¤íƒ¬í”„ (ìš”ì•½ìš©)
+                            first_output_time = $time; // ì²? ì¶œë ¥ ???„?Š¤?ƒ¬?”„ (?š”?•½?š©)
                         end
                         if (output_idx < 784) begin
                             output_ch0[output_idx] = out_ch0;
@@ -308,7 +308,7 @@ module c1_layer_tb;
         // Save outputs (HEX)
         $display("\n=== Saving Output Files ===");
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch0.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch0.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%02h\n", output_ch0[i]);
@@ -316,7 +316,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch0.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch1.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch1.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%02h\n", output_ch1[i]);
@@ -324,7 +324,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch1.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch2.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch2.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%02h\n", output_ch2[i]);
@@ -332,7 +332,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch2.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch3.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch3.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%02h\n", output_ch3[i]);
@@ -340,7 +340,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch3.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch4.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch4.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%02h\n", output_ch4[i]);
@@ -348,7 +348,7 @@ module c1_layer_tb;
             $display("Saved c1_output_ch4.txt");
         end
         
-        output_file = $fopen("C:/VI_LFEA/LEFA/output/c1_output_ch5.txt", "w");
+        output_file = $fopen("C:/Users/owner/Documents/code/Lenut_Front_end-Accelerator2/c1/c1_output_ch5.txt", "w");
         if (output_file) begin
             for (i = 0; i < 784; i = i + 1)
                 $fwrite(output_file, "%02h\n", output_ch5[i]);
@@ -440,7 +440,7 @@ module c1_layer_tb;
                         DUT.state, DUT.kernel_idx, DUT.weights_loaded, $time);
             end
         end
-        // ì„¼í„° ì¢Œí‘œ(2,8) ì°ê¸°: o_window_colì€ center, window_0_0ì€ top-left
+        // ?„¼?„° ì¢Œí‘œ(2,8) ì°ê¸°: o_window_col?? center, window_0_0?? top-left
         if (DUT.o_output_row == 5'd2 && DUT.o_window_col == 5'd8) begin
             $display("Critical window at (2,8): tl=%02h center=%02h @%0t",
                      DUT.window_0_0,   // top-left

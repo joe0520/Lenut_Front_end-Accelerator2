@@ -75,11 +75,11 @@ module in_line_controller(
             end
 
             S_ROLL: begin
-                // í”„ë¦¬í˜ì¹˜ê°€ í•„ìš”í•œ ê²½ìš°, ì™„ë£Œë  ë•Œê¹Œì§€ ëŒ€ê¸°
+                // ?”„ë¦¬í˜ì¹˜ê? ?•„?š”?•œ ê²½ìš°, ?™„ë£Œë  ?•Œê¹Œì? ??ê¸?
                 if (prefetch_needed && !prefetch_done) begin
-                    next_state = S_ROLL; // ëŒ€ê¸° ìƒíƒœ ìœ ì§€
+                    next_state = S_ROLL; // ??ê¸? ?ƒ?ƒœ ?œ ì§?
                 end else begin
-                    next_state = S_CONV_ROW; // ë‹¤ìŒ í–‰ìœ¼ë¡œ ì§„í–‰
+                    next_state = S_CONV_ROW; // ?‹¤?Œ ?–‰?œ¼ë¡? ì§„í–‰
                 end
             end
             
@@ -287,10 +287,10 @@ module in_line_controller(
                 S_ROLL: begin
                     o_conv_valid <= 1'b0;
 
-                    // í”„ë¦¬í˜ì¹˜ê°€ í•„ìš”í•˜ê³  ì•„ì§ ì™„ë£Œë˜ì§€ ì•Šì€ ê²½ìš° ëŒ€ê¸°
+                    // ?”„ë¦¬í˜ì¹˜ê? ?•„?š”?•˜ê³? ?•„ì§? ?™„ë£Œë˜ì§? ?•Š?? ê²½ìš° ??ê¸?
                     if (prefetch_needed && !prefetch_done) begin
-                        // ì…ë ¥ ë²”ìœ„ë¥¼ ë²—ì–´ë‚˜ë©´ ê°•ì œë¡œ ì™„ë£Œ ì²˜ë¦¬
-                        if (next_ifm_row >= 32) begin
+                        // ?…? ¥ ë²”ìœ„ë¥? ë²—ì–´?‚˜ë©? ê°•ì œë¡? ?™„ë£? ì²˜ë¦¬
+                        if (next_ifm_row >= 31) begin
                             $display("=== PREFETCH FORCED COMPLETE: No more input rows ===");
                             $display("next_ifm_row=%d >= 32, forcing prefetch_done at %0t", next_ifm_row, $time);
                             prefetch_done <= 1'b1;
@@ -299,7 +299,7 @@ module in_line_controller(
                             $display("Waiting for row %d prefetch to line %d (col=%d) at %0t",
                                     next_ifm_row, wr_ptr, wr_col_cnt, $time);
 
-                            // í”„ë¦¬í˜ì¹˜ ê³„ì† ì§„í–‰
+                            // ?”„ë¦¬í˜ì¹? ê³„ì† ì§„í–‰
                             if (pixel_in_valid && next_ifm_row < 32) begin
                                 line_buffer[wr_ptr][wr_col_cnt] <= pixel_in;
 
@@ -321,7 +321,7 @@ module in_line_controller(
                             end
                         end
                     end else begin
-                        // í”„ë¦¬í˜ì¹˜ ì™„ë£Œ ë˜ëŠ” ë¶ˆí•„ìš”í•œ ê²½ìš° ë‹¤ìŒ í–‰ìœ¼ë¡œ ì§„í–‰
+                        // ?”„ë¦¬í˜ì¹? ?™„ë£? ?˜?Š” ë¶ˆí•„?š”?•œ ê²½ìš° ?‹¤?Œ ?–‰?œ¼ë¡? ì§„í–‰
                         row_complete <= 1'b0;
 
                         $display("=== ROLLING TO NEXT ROW ===");
@@ -335,10 +335,10 @@ module in_line_controller(
 
                         // Set up for next row
                         if (out_row < 27) begin
-                            // ë” ì´ìƒ í”„ë¦¬í˜ì¹˜í•  ì…ë ¥ í–‰ì´ ì—†ìœ¼ë©´ í”„ë¦¬í˜ì¹˜ ë¶ˆí•„ìš”
+                            // ?” ?´?ƒ ?”„ë¦¬í˜ì¹˜í•  ?…? ¥ ?–‰?´ ?—†?œ¼ë©? ?”„ë¦¬í˜ì¹? ë¶ˆí•„?š”
                             if (next_ifm_row >= 32) begin
                                 prefetch_needed <= 1'b0;
-                                prefetch_done <= 1'b1; // ì´ë¯¸ ì™„ë£Œëœ ê²ƒìœ¼ë¡œ ì²˜ë¦¬
+                                prefetch_done <= 1'b1; // ?´ë¯? ?™„ë£Œëœ ê²ƒìœ¼ë¡? ì²˜ë¦¬
                             end else begin
                                 prefetch_needed <= 1'b1;
                                 prefetch_done <= 1'b0;
