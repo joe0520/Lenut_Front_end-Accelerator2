@@ -32,7 +32,6 @@ module c1_reg_controller (
     // Control signals
     reg push_flag;      // 0: write to ping, 1: write to pong
     reg [4:0] w_cnt;    // width counter (0-27)
-    reg [2:0] c_cnt;    // channel counter (0-5)
     reg h_cnt;          // height counter within 2-row block (0-1)
     
     // State machine
@@ -52,7 +51,7 @@ module c1_reg_controller (
     
     integer i, j;
     
-    // Write logic to ping/pong buffers
+    // Write logic to ping/pong buffers - FIXED: 모든 채널 동시 저장
     always @(posedge clk) begin
         if (!reset_n) begin
             for (i = 0; i < 6; i = i + 1) begin
@@ -64,84 +63,68 @@ module c1_reg_controller (
                 end
             end
         end else if (~push_flag & conv_valid) begin
-            // Write to ping buffer
+            // Write to ping buffer - 모든 채널 동시 저장
             if (~h_cnt) begin
-                // Write to row 0 - only write the active channel
-                case (c_cnt)
-                    0: ping_reg_0[0][w_cnt] <= conv_ch0;
-                    1: ping_reg_0[1][w_cnt] <= conv_ch1;
-                    2: ping_reg_0[2][w_cnt] <= conv_ch2;
-                    3: ping_reg_0[3][w_cnt] <= conv_ch3;
-                    4: ping_reg_0[4][w_cnt] <= conv_ch4;
-                    5: ping_reg_0[5][w_cnt] <= conv_ch5;
-                endcase
+                // Write to row 0 - 모든 채널 동시에
+                ping_reg_0[0][w_cnt] <= conv_ch0;
+                ping_reg_0[1][w_cnt] <= conv_ch1;
+                ping_reg_0[2][w_cnt] <= conv_ch2;
+                ping_reg_0[3][w_cnt] <= conv_ch3;
+                ping_reg_0[4][w_cnt] <= conv_ch4;
+                ping_reg_0[5][w_cnt] <= conv_ch5;
             end else begin
-                // Write to row 1 - only write the active channel
-                case (c_cnt)
-                    0: ping_reg_1[0][w_cnt] <= conv_ch0;
-                    1: ping_reg_1[1][w_cnt] <= conv_ch1;
-                    2: ping_reg_1[2][w_cnt] <= conv_ch2;
-                    3: ping_reg_1[3][w_cnt] <= conv_ch3;
-                    4: ping_reg_1[4][w_cnt] <= conv_ch4;
-                    5: ping_reg_1[5][w_cnt] <= conv_ch5;
-                endcase
+                // Write to row 1 - 모든 채널 동시에
+                ping_reg_1[0][w_cnt] <= conv_ch0;
+                ping_reg_1[1][w_cnt] <= conv_ch1;
+                ping_reg_1[2][w_cnt] <= conv_ch2;
+                ping_reg_1[3][w_cnt] <= conv_ch3;
+                ping_reg_1[4][w_cnt] <= conv_ch4;
+                ping_reg_1[5][w_cnt] <= conv_ch5;
             end
         end else if (push_flag & conv_valid) begin
-            // Write to pong buffer
+            // Write to pong buffer - 모든 채널 동시 저장
             if (~h_cnt) begin
-                // Write to row 0 - only write the active channel
-                case (c_cnt)
-                    0: pong_reg_0[0][w_cnt] <= conv_ch0;
-                    1: pong_reg_0[1][w_cnt] <= conv_ch1;
-                    2: pong_reg_0[2][w_cnt] <= conv_ch2;
-                    3: pong_reg_0[3][w_cnt] <= conv_ch3;
-                    4: pong_reg_0[4][w_cnt] <= conv_ch4;
-                    5: pong_reg_0[5][w_cnt] <= conv_ch5;
-                endcase
+                // Write to row 0 - 모든 채널 동시에
+                pong_reg_0[0][w_cnt] <= conv_ch0;
+                pong_reg_0[1][w_cnt] <= conv_ch1;
+                pong_reg_0[2][w_cnt] <= conv_ch2;
+                pong_reg_0[3][w_cnt] <= conv_ch3;
+                pong_reg_0[4][w_cnt] <= conv_ch4;
+                pong_reg_0[5][w_cnt] <= conv_ch5;
             end else begin
-                // Write to row 1 - only write the active channel
-                case (c_cnt)
-                    0: pong_reg_1[0][w_cnt] <= conv_ch0;
-                    1: pong_reg_1[1][w_cnt] <= conv_ch1;
-                    2: pong_reg_1[2][w_cnt] <= conv_ch2;
-                    3: pong_reg_1[3][w_cnt] <= conv_ch3;
-                    4: pong_reg_1[4][w_cnt] <= conv_ch4;
-                    5: pong_reg_1[5][w_cnt] <= conv_ch5;
-                endcase
+                // Write to row 1 - 모든 채널 동시에
+                pong_reg_1[0][w_cnt] <= conv_ch0;
+                pong_reg_1[1][w_cnt] <= conv_ch1;
+                pong_reg_1[2][w_cnt] <= conv_ch2;
+                pong_reg_1[3][w_cnt] <= conv_ch3;
+                pong_reg_1[4][w_cnt] <= conv_ch4;
+                pong_reg_1[5][w_cnt] <= conv_ch5;
             end
         end
     end
     
-    // Counter control logic
+    // Counter control logic - FIXED: c_cnt 제거
     always @(posedge clk) begin
         if (!reset_n) begin
             w_cnt <= 5'd0;
-            c_cnt <= 3'd0;
             h_cnt <= 1'b0;
             push_flag <= 1'b0;
         end else if (conv_valid) begin
             // Switch push_flag when completing a 2-row block
-            if (h_cnt & (w_cnt == 27) & (c_cnt == 5)) begin
+            if (h_cnt & (w_cnt == 27)) begin
                 push_flag <= ~push_flag;
             end
             
             // Toggle height counter when completing a row
-            if ((w_cnt == 27) & (c_cnt == 5)) begin
+            if (w_cnt == 27) begin
                 h_cnt <= ~h_cnt;
             end
             
             // Reset width counter when completing a row
-            if ((w_cnt == 27) & (c_cnt == 5)) begin
+            if (w_cnt == 27) begin
                 w_cnt <= 5'd0;
-            end else if (c_cnt == 5) begin
-                w_cnt <= w_cnt + 1'b1;
-            end
-            
-            // Channel counter
-            if (c_cnt == 5) begin
-                c_cnt <= 3'd0;
             end else begin
-                c_cnt <= c_cnt + 1'b1;
+                w_cnt <= w_cnt + 1'b1;
             end
         end
     end
@@ -161,12 +144,12 @@ module c1_reg_controller (
         end
     end
     
-    // Next state logic
+    // Next state logic - FIXED: c_cnt 조건 제거
     always @(*) begin
         n_state = c_state;
         case (c_state)
             PING_READ: begin
-                if (conv_valid & h_cnt & (w_cnt == 27) & (c_cnt == 5)) 
+                if (conv_valid & h_cnt & (w_cnt == 27)) 
                     n_state = PING_WRITE_PONG_READ;
             end
             PING_WRITE_PONG_READ: begin
@@ -174,7 +157,7 @@ module c1_reg_controller (
                     n_state = PONG_READ;
             end
             PONG_READ: begin
-                if (conv_valid & h_cnt & (w_cnt == 27) & (c_cnt == 5)) 
+                if (conv_valid & h_cnt & (w_cnt == 27)) 
                     n_state = PONG_WRITE_PING_READ;
             end
             PONG_WRITE_PING_READ: begin
