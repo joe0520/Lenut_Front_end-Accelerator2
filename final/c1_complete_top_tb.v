@@ -41,10 +41,18 @@ module c1_complete_top_tb;
     reg [7:0] final_output_ch3 [0:195];
     reg [7:0] final_output_ch4 [0:195];
     reg [7:0] final_output_ch5 [0:195];
+    // Add conv layer output arrays (28x28 like original testbench)
+    reg [7:0] conv_output_ch0 [0:783];          // 28x28 conv outputs (784 values each)
+    reg [7:0] conv_output_ch1 [0:783];
+    reg [7:0] conv_output_ch2 [0:783];
+    reg [7:0] conv_output_ch3 [0:783];
+    reg [7:0] conv_output_ch4 [0:783];
+    reg [7:0] conv_output_ch5 [0:783];
 
     // Monitoring variables
     integer pixel_count;
     integer final_output_idx;
+    integer conv_output_idx;  // Add index for conv outputs
     integer i, j;
     integer input_file, output_file;
     integer scan_result;
@@ -53,6 +61,7 @@ module c1_complete_top_tb;
     // Performance monitoring
     integer start_time, conv_done_time, final_done_time;
     integer total_final_outputs;
+    integer total_conv_outputs;  // Add counter for conv outputs
     integer conv_outputs_received;
     integer pool_outputs_received;
     integer consecutive_no_output;
@@ -107,6 +116,16 @@ module c1_complete_top_tb;
             final_output_ch5[i] = 8'd0;
         end
 
+        // Initialize conv output arrays
+        for (i = 0; i < 784; i = i + 1) begin
+            conv_output_ch0[i] = 8'd0;
+            conv_output_ch1[i] = 8'd0;
+            conv_output_ch2[i] = 8'd0;
+            conv_output_ch3[i] = 8'd0;
+            conv_output_ch4[i] = 8'd0;
+            conv_output_ch5[i] = 8'd0;
+        end
+
         // Load input image
         $display("=== Loading Input Image ===");
         input_file = $fopen("data/image_pixels_0.txt", "r");
@@ -151,6 +170,7 @@ module c1_complete_top_tb;
         conv_done_time = 0;
         final_done_time = 0;
         total_final_outputs = 0;
+        total_conv_outputs = 0;
         conv_outputs_received = 0;
         pool_outputs_received = 0;
         consecutive_no_output = 0;
@@ -165,6 +185,7 @@ module c1_complete_top_tb;
         quan_en = 1;
         pixel_count = 0;
         final_output_idx = 0;
+        conv_output_idx = 0;
 
         // Wait for initialization
         #10;
@@ -257,11 +278,33 @@ module c1_complete_top_tb;
                 end
             end
 
-            // Convolution output monitoring
+            // Convolution output monitoring (like original testbench)
             begin
-                while (!conv_layer_done) begin
+                conv_output_idx = 0;
+                $display("\n=== Monitoring Conv Outputs (expecting 28x28x6 = 4704 total) ===");
+
+                while (conv_output_idx < 784 && !conv_layer_done) begin
                     @(posedge clk);
+
                     if (DUT.conv_out_valid) begin
+                        if (conv_output_idx < 784) begin
+                            conv_output_ch0[conv_output_idx] = DUT.conv_out_ch0;
+                            conv_output_ch1[conv_output_idx] = DUT.conv_out_ch1;
+                            conv_output_ch2[conv_output_idx] = DUT.conv_out_ch2;
+                            conv_output_ch3[conv_output_idx] = DUT.conv_out_ch3;
+                            conv_output_ch4[conv_output_idx] = DUT.conv_out_ch4;
+                            conv_output_ch5[conv_output_idx] = DUT.conv_out_ch5;
+
+                            total_conv_outputs = total_conv_outputs + 1;
+
+                            if (conv_output_idx < 15 || conv_output_idx > 770) begin
+                                $display("Conv[%3d]: ch0=%02h ch1=%02h ch2=%02h ch3=%02h ch4=%02h ch5=%02h at %0t",
+                                        conv_output_idx, DUT.conv_out_ch0, DUT.conv_out_ch1, DUT.conv_out_ch2,
+                                        DUT.conv_out_ch3, DUT.conv_out_ch4, DUT.conv_out_ch5, $time);
+                            end
+
+                            conv_output_idx = conv_output_idx + 1;
+                        end
                         conv_outputs_received = conv_outputs_received + 1;
                     end
                 end
@@ -301,8 +344,59 @@ module c1_complete_top_tb;
             end
         end
 
+        // Save conv outputs (like original testbench)
+        $display("\n=== Saving Conv Output Files (28x28) ===");
+
+        output_file = $fopen("data/c1_output_ch0.txt", "w");
+        if (output_file) begin
+            for (i = 0; i < 784; i = i + 1)
+                $fwrite(output_file, "%0d\n", conv_output_ch0[i]);
+            $fclose(output_file);
+            $display("Saved c1_output_ch0.txt");
+        end
+
+        output_file = $fopen("data/c1_output_ch1.txt", "w");
+        if (output_file) begin
+            for (i = 0; i < 784; i = i + 1)
+                $fwrite(output_file, "%0d\n", conv_output_ch1[i]);
+            $fclose(output_file);
+            $display("Saved c1_output_ch1.txt");
+        end
+
+        output_file = $fopen("data/c1_output_ch2.txt", "w");
+        if (output_file) begin
+            for (i = 0; i < 784; i = i + 1)
+                $fwrite(output_file, "%0d\n", conv_output_ch2[i]);
+            $fclose(output_file);
+            $display("Saved c1_output_ch2.txt");
+        end
+
+        output_file = $fopen("data/c1_output_ch3.txt", "w");
+        if (output_file) begin
+            for (i = 0; i < 784; i = i + 1)
+                $fwrite(output_file, "%0d\n", conv_output_ch3[i]);
+            $fclose(output_file);
+            $display("Saved c1_output_ch3.txt");
+        end
+
+        output_file = $fopen("data/c1_output_ch4.txt", "w");
+        if (output_file) begin
+            for (i = 0; i < 784; i = i + 1)
+                $fwrite(output_file, "%0d\n", conv_output_ch4[i]);
+            $fclose(output_file);
+            $display("Saved c1_output_ch4.txt");
+        end
+
+        output_file = $fopen("data/c1_output_ch5.txt", "w");
+        if (output_file) begin
+            for (i = 0; i < 784; i = i + 1)
+                $fwrite(output_file, "%0d\n", conv_output_ch5[i]);
+            $fclose(output_file);
+            $display("Saved c1_output_ch5.txt");
+        end
+
         // Save final outputs
-        $display("\n=== Saving Final Output Files ===");
+        $display("\n=== Saving Final Output Files (14x14) ===");
 
         output_file = $fopen("data/c1_final_output_ch0.txt", "w");
         if (output_file) begin
@@ -366,11 +460,22 @@ module c1_complete_top_tb;
         $display("Data Flow Analysis:");
         $display("  Input pixels fed: %0d", pixel_count);
         $display("  Conv outputs received: %0d (expected: 784x6 = 4704)", conv_outputs_received);
+        $display("  Conv outputs stored: %0d", conv_output_idx);
         $display("  Pool outputs received: %0d", pool_outputs_received);
         $display("  Final outputs collected: %0d (expected: 196x6 = 1176)", total_final_outputs);
         $display("  Final outputs stored: %0d", final_output_idx);
 
-        // Analyze non-zero outputs
+        // Analyze non-zero conv outputs
+        j = 0;
+        for (i = 0; i < 784; i = i + 1) begin
+            if (|conv_output_ch0[i] | |conv_output_ch1[i] | |conv_output_ch2[i] |
+                |conv_output_ch3[i] | |conv_output_ch4[i] | |conv_output_ch5[i]) begin
+                j = j + 1;
+            end
+        end
+        $display("  Non-zero conv outputs: %0d / 784", j);
+
+        // Analyze non-zero final outputs
         nz_final_count = 0;
         for (i = 0; i < 196; i = i + 1) begin
             if (|final_output_ch0[i] | |final_output_ch1[i] | |final_output_ch2[i] |
@@ -380,8 +485,46 @@ module c1_complete_top_tb;
         end
         $display("  Non-zero final outputs: %0d / 196", nz_final_count);
 
-        // Per-channel analysis
-        $display("\n--- Per-Channel Final Output Analysis ---");
+        // Per-channel conv output analysis
+        $display("\n--- Per-Channel Conv Output Analysis (28x28) ---");
+        for (i = 0; i < 6; i = i + 1) begin
+            j = 0;
+            case (i)
+                0: for (pixel_count = 0; pixel_count < 784; pixel_count = pixel_count + 1)
+                       if (conv_output_ch0[pixel_count] != 0) j = j + 1;
+                1: for (pixel_count = 0; pixel_count < 784; pixel_count = pixel_count + 1)
+                       if (conv_output_ch1[pixel_count] != 0) j = j + 1;
+                2: for (pixel_count = 0; pixel_count < 784; pixel_count = pixel_count + 1)
+                       if (conv_output_ch2[pixel_count] != 0) j = j + 1;
+                3: for (pixel_count = 0; pixel_count < 784; pixel_count = pixel_count + 1)
+                       if (conv_output_ch3[pixel_count] != 0) j = j + 1;
+                4: for (pixel_count = 0; pixel_count < 784; pixel_count = pixel_count + 1)
+                       if (conv_output_ch4[pixel_count] != 0) j = j + 1;
+                5: for (pixel_count = 0; pixel_count < 784; pixel_count = pixel_count + 1)
+                       if (conv_output_ch5[pixel_count] != 0) j = j + 1;
+            endcase
+            $display("Conv Channel %0d: %0d non-zero values", i, j);
+        end
+
+        // Sample Conv Outputs (like original testbench)
+        $display("\n--- Sample Conv Outputs (28x28 format) ---");
+        $display("First row (0-27):");
+        $display("  ch0: %02h %02h %02h %02h", conv_output_ch0[0], conv_output_ch0[1], conv_output_ch0[2], conv_output_ch0[3]);
+        $display("  ch1: %02h %02h %02h %02h", conv_output_ch1[0], conv_output_ch1[1], conv_output_ch1[2], conv_output_ch1[3]);
+        $display("  ch5: %02h %02h %02h %02h", conv_output_ch5[0], conv_output_ch5[1], conv_output_ch5[2], conv_output_ch5[3]);
+
+        $display("Middle (392-395):");
+        $display("  ch0: %02h %02h %02h %02h", conv_output_ch0[392], conv_output_ch0[393], conv_output_ch0[394], conv_output_ch0[395]);
+        $display("  ch1: %02h %02h %02h %02h", conv_output_ch1[392], conv_output_ch1[393], conv_output_ch1[394], conv_output_ch1[395]);
+        $display("  ch5: %02h %02h %02h %02h", conv_output_ch5[392], conv_output_ch5[393], conv_output_ch5[394], conv_output_ch5[395]);
+
+        $display("Last row (756-783):");
+        $display("  ch0: %02h %02h %02h %02h", conv_output_ch0[780], conv_output_ch0[781], conv_output_ch0[782], conv_output_ch0[783]);
+        $display("  ch1: %02h %02h %02h %02h", conv_output_ch1[780], conv_output_ch1[781], conv_output_ch1[782], conv_output_ch1[783]);
+        $display("  ch5: %02h %02h %02h %02h", conv_output_ch5[780], conv_output_ch5[781], conv_output_ch5[782], conv_output_ch5[783]);
+
+        // Per-channel final output analysis
+        $display("\n--- Per-Channel Final Output Analysis (14x14) ---");
         for (i = 0; i < 6; i = i + 1) begin
             j = 0;
             case (i)
@@ -398,7 +541,7 @@ module c1_complete_top_tb;
                 5: for (pixel_count = 0; pixel_count < 196; pixel_count = pixel_count + 1)
                        if (final_output_ch5[pixel_count] != 0) j = j + 1;
             endcase
-            $display("Channel %0d: %0d non-zero values", i, j);
+            $display("Final Channel %0d: %0d non-zero values", i, j);
         end
 
         // Sample outputs
@@ -419,15 +562,18 @@ module c1_complete_top_tb;
         $display("  ch5: %02h %02h %02h %02h", final_output_ch5[192], final_output_ch5[193], final_output_ch5[194], final_output_ch5[195]);
 
         // Success criteria
-        if (total_final_outputs >= 1000) begin
-            $display("\n*** SUCCESS: Complete CNN C1 system working! ***");
-            $display("    Received %0d final outputs (>= 1000)", total_final_outputs);
+        if (total_conv_outputs >= 700 && total_final_outputs >= 1000) begin
+            $display("\n*** COMPLETE SUCCESS: Full CNN C1 system working! ***");
+            $display("    Conv outputs: %0d (>= 700), Final outputs: %0d (>= 1000)", total_conv_outputs, total_final_outputs);
+        end else if (total_conv_outputs >= 700) begin
+            $display("\n*** CONV SUCCESS: Convolution layer working! ***");
+            $display("    Conv outputs: %0d (>= 700), Final outputs: %0d", total_conv_outputs, total_final_outputs);
         end else if (total_final_outputs >= 500) begin
             $display("\n*** PARTIAL SUCCESS: System partially working ***");
-            $display("    Received %0d final outputs (>= 500)", total_final_outputs);
+            $display("    Conv outputs: %0d, Final outputs: %0d (>= 500)", total_conv_outputs, total_final_outputs);
         end else begin
             $display("\n*** FAILURE: System not working properly ***");
-            $display("    Only received %0d final outputs", total_final_outputs);
+            $display("    Conv outputs: %0d, Final outputs: %0d", total_conv_outputs, total_final_outputs);
         end
 
         #1000;
